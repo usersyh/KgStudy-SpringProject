@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.spring.kgstudy.review.dao.ReviewDAO">
+	
+	<resultMap type="com.spring.kgstudy.review.vo.ReviewVO" id="ReviewVO">
+		<result property="review_id" column="review_id" />
+		<result property="user_id" column="user_id" />
+		<result property="store_id" column="store_id" />
+		<result property="store_name" column="store_name" />
+		<result property="reservation_id" column="reservation_id" />
+		<result property="review_date" column="review_date" />
+		<result property="review_content" column="review_content" />
+		<result property="review_filename" column="review_filename" />
+		<result property="review_star" column="review_star" />
+	</resultMap>
+	
+	<sql id="search">
+		<if test="type=='review_star'">
+			where store_name like '%' || #{keyword} || '%' ORDER BY review_star DESC
+		</if>
+		<if test="type=='review_date'">
+			where store_name like '%' || #{keyword} || '%' ORDER BY review_date DESC
+		</if> 
+		<if test="type=='user'">
+			 where user_id = #{keyword} ORDER BY review_date DESC
+		</if>
+		
+		
+		<if test="type==null or type.equals('')">
+			ORDER BY review_date DESC
+		</if>
+		 <!--  <if test="type == 'store_id'">
+		  	WHERE store_id = #{keyword}
+		  </if> -->
+	</sql>
+
+
+	<select id="findAllStore" resultType="com.spring.kgstudy.store.VO.StoreVO">
+
+
+		select A.* from store_table A
+		<!-- <include refid="search" /> -->
+
+		order by store_id
+
+	</select>
+	
+	
+	<select id="getAllReview" resultMap="ReviewVO">
+		SELECT * FROM ( select A.*, rownum rn from(SELECT * from review 
+		 <include refid="search"/>
+		) A)where rn between #{pageStart}+1 AND #{pageStart} + #{perPageNum}
+	</select>
+	
+
+	
+	<select id="revIdfind" resultType="com.spring.kgstudy.seat.vo.ReservationVO">
+		SELECT *
+		FROM (
+		  SELECT A.*, ROW_NUMBER() OVER (ORDER BY reservation_day DESC) AS rn
+		  FROM reservation_table A
+		  WHERE user_id = #{user_id}
+		) 
+		WHERE rn = 1
+	</select>
+	
+	<select id="findReservId" resultType="int">
+		select count(*) from review 
+		where reservation_id = #{reservation_id}
+	</select>
+	
+	<insert id="reviewInsert">
+      insert into review
+      values (review_seq.NEXTVAL, #{user_id}, #{store_id}, #{store_name}, #{reservation_id}, sysdate, #{review_content}, #{review_filename}, #{review_star} )   
+   </insert>
+   
+   <delete id="reviewDelete">
+   	delete from review where review_id=#{review_id}
+   </delete>
+   
+   <select id="totalCount" resultType="int" parameterType="com.spring.kgstudy.common.vo.Criteria">
+   		select count(*) from review
+   		<include refid="search" />
+   </select>
+   
+   
+     <select id="totalStar" resultType="int" parameterType="com.spring.kgstudy.common.vo.Criteria">
+   		select nvl(sum(review_star),0) from review
+   		<include refid="search" />
+   </select>
+    <select id="cntByStar" resultType="com.spring.kgstudy.review.vo.CntByStarDTO" parameterType="com.spring.kgstudy.common.vo.Criteria">
+   		select review_star star_num, count(review_star) star_cnt from review 
+   		<include refid="search2" />
+   		group by review_star
+   		order by review_star
+   </select>
+   
+   
+   	<sql id="search2">
+		<if test="type=='review_star'">
+			where store_name like '%' || #{keyword} || '%' 
+		</if>
+		<if test="type=='review_date'">
+			where store_name like '%' || #{keyword} || '%' 
+		</if> 
+		<if test="type=='user'">
+			 where user_id = #{keyword} 
+		</if>
+   </sql>
+ 
+	
+
+</mapper>

@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.spring.kgstudy.seat.dao.SeatDAO">
+
+
+
+<!-- 좌석 리스트 -->
+<select id="findSeat" resultType="com.spring.kgstudy.seat.vo.SeatVO" >
+	SELECT * FROM seat WHERE store_id=#{storeId}
+</select>
+
+
+<!-- 좌석추가 -->
+<insert id="insertSeat">
+
+	INSERT INTO seat(seat_id,seat_name,store_id,seat_type,x,y) 
+	VALUES(seat_seq.nextval,#{seatName},#{storeId},#{seatType},#{x},#{y})
+
+</insert>
+
+<!--  -->
+<select id="findSeatBySeatId" resultType="com.spring.kgstudy.seat.vo.SeatVO" >
+	SELECT * FROM seat WHERE seat_id=#{seatId}
+</select>
+
+<update id="updateSeat">
+	UPDATE seat SET  
+
+	seat_name=#{seatName},  x=#{x}, y=#{y},
+	<if test="reservationId!=0">
+	reservation_id = #{reservationId}, 
+	</if>
+	<if test="userId!=null">
+	user_id=#{userId},
+	</if>
+	  seat_type=#{seatType} WHERE seat_id=#{seatId}
+</update>
+
+<select id="seatCheck" resultType="String">
+
+	SELECT seat_type FROM seat WHERE seat_id=#{seatId}
+</select>
+
+
+
+
+<sql id="searchReserv">
+        <if test="type == 'pass'">WHERE pass_id = #{keyword}</if>
+        <if test="type == 'user'">WHERE user_id = #{keyword}</if>
+        <if test="type == 'reservation'">WHERE reservation_id = #{keyword}</if>
+        <if test="type == 'date'">WHERE reservation_day like '%'||#{keyword}||'%'</if>
+        <if test="type == 'seat'">WHERE seat_id = #{keyword}</if>
+        <if test="type == 'tc'">WHERE user_id = #{keyword} and reservation_day between #{startDate} and #{endDate}</if>
+</sql>
+
+
+
+
+
+
+<insert id="insertReserv">
+
+	<selectKey keyProperty="storeName,reservationId" order="BEFORE" resultType="com.spring.kgstudy.seat.vo.ReservationVO">
+			select store_name,(reservation_seq.nextval) reservation_id from store_table where store_id = #{storeId}	
+	</selectKey>
+
+
+INSERT INTO reservation_table(reservation_id,reservation_day,store_id,store_name,pass_id,user_id,seat_id,use_time) 
+	VALUES(#{reservationId},#{reservationDay},#{storeId},#{storeName},#{passId},#{userId},#{seatId},#{useTime})
+
+	
+
+</insert>
+
+
+
+<select id="findAllReserv" resultType="com.spring.kgstudy.seat.vo.ReservationVO">
+
+select * from
+(select A.*, row_number() over(order by reservation_day ASC) rn from reservation_table A
+<include refid="searchReserv"/>
+order by reservation_day ASC
+) where rn between (#{pageNum}-1)*#{amount}+1 and  #{pageNum}*#{amount}
+
+
+
+</select>
+
+
+<select id="findOneResrv" resultType="com.spring.kgstudy.seat.vo.ReservationVO">
+
+select * from reservation_table 
+<include refid="searchReserv"/>
+
+</select>
+
+<select id="findResrvCnt" resultType="int">
+select count(*) from reservation_table 
+<include refid="searchReserv"/>
+
+</select>
+
+<update id="updateResrv">
+
+update reservation_table set use_time = #{useTime} where reservation_id =#{reservationId}
+
+</update>
+	
+<delete id="deleteResrv">
+
+</delete>
+
+<delete id="deleteSeat">
+delete from seat where seat_id =#{seatId}
+
+</delete>
+
+
+</mapper>
